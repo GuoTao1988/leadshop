@@ -1,18 +1,23 @@
-FROM composer:latest as setup
+# 基础镜像
+FROM php:7.4-apache
 
-RUN mkdir /guzzle
+# 设置工作目录
+WORKDIR /var/www/html
 
-WORKDIR /guzzle
+# 安装依赖
+RUN apt-get update && apt-get install -y \
+    libzip-dev \
+    && docker-php-ext-install zip
 
-RUN set -xe \
-    && composer init --name=guzzlehttp/test --description="Simple project for testing Guzzle scripts" --author="Márk Sági-Kazár <mark.sagikazar@gmail.com>" --no-interaction \
-    && composer require guzzlehttp/guzzle
+# 复制项目文件到容器中
+COPY . /var/www/html
 
+# 安装Composer依赖
+RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
+RUN composer install --no-dev
 
-FROM php:7.3
+# 设置Apache配置
+RUN a2enmod rewrite
 
-RUN mkdir /guzzle
-
-WORKDIR /guzzle
-
-COPY --from=setup /guzzle /guzzle
+# 启动Apache服务器
+CMD ["apache2-foreground"]
